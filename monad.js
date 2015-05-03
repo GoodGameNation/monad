@@ -37,6 +37,32 @@
 //    var monad = maybe(null);
 //    monad.bind(alert);    // Nothing happens.
 
+//    var list = MONAD(function (monad, value) {
+//        monad.bind = function (func, args) {
+//            var results = [];
+//            for (var i = 0; i < value.length; ++i) {
+//                result = monad.apply(func, value[i], args);
+//                if (result && result.is_monad === true) {
+//                    result.bind(function(v) {
+//                        results.push(v);
+//                    });
+//                } else {
+//                    results = results.concat(result);
+//                }
+//            }
+//            return list(results);
+//        };
+//        return value;
+//    });
+//    var monad = list([1,2,3]);
+//    var dup = function(value) {
+//        return list([value, value]);
+//    };
+//    var double = function(value) {
+//        return value*2;
+//    };
+//    monad.bind(dup).bind(double);    // returns [2,2,4,4,6,6]
+
 /*jslint this */
 
 function MONAD(modifier) {
@@ -56,22 +82,25 @@ function MONAD(modifier) {
 
         var monad = Object.create(prototype);
 
-// In some mythologies 'bind' is called 'pipe' or '>>='.
-// The bind method will deliver the unit's value parameter to a function.
-
-        monad.bind = function (func, args) {
-
-// bind takes a function and an optional array of arguments. It calls that
+// apply takes a function and an optional array of arguments. It calls that
 // function passing the monad's value and bind's optional array of args.
-
 // With ES6, this horrible return statement can be replaced with
 
 //          return func(value, ...args);
 
+        monad.apply = function (func, value, args) {
             return func.apply(
                 undefined,
                 [value].concat(Array.prototype.slice.apply(args || []))
             );
+        };
+
+// In some mythologies 'bind' is called 'pipe' or '>>='.
+// The bind method will deliver the unit's value parameter to a function.
+
+        monad.bind = function (func, args) {
+            return apply(func, value, args);
+
         };
 
 // If MONAD's modifier parameter is a function, then call it, passing the monad
@@ -109,12 +138,11 @@ function MONAD(modifier) {
 
         prototype[name] = function () {
             var result = this.bind(func, arguments);
-            return result && result.is_monad === true 
-                ? result 
+            return result && result.is_monad === true
+                ? result
                 : unit(result);
         };
         return unit;
     };
     return unit;
 }
-
